@@ -1,124 +1,126 @@
 using Solid.interfaces;
+using Solid.Interfaces;
 
-namespace Solid.Implementation
+namespace Solid.Implementation;
+
+/// <summary>
+/// Класс, представляющий игру
+/// </summary>
+public class Game : IGame
 {
-    /// <summary>
-    /// Класс, представляющий игру
-    /// </summary>
-    public class Game : IGame
+    private readonly IMessageService _messageService;
+
+    public Game(IMessageService messageService)
     {
-        private readonly IMessages _messages;
-        
-        public Game(IMessages messages)
-        {
-            _messages = messages;
-        }
+        _messageService = messageService;
+    }
 
-        /// <inheritdoc />
-        public void Run(IGameLogic gameLogic)
+    /// <inheritdoc />
+    public void Run(IGameLogic gameLogic)
+    {
+        while (gameLogic.IsHasAttempts())
         {
-            while (gameLogic.IsHasAttempts())
+            var attemptsCount = gameLogic.GetAttemptsCount();
+            _messageService.ShowMessage(Messages.GetCountToLossMessage(attemptsCount));
+
+            var number = GetGuessNumberAtConsoleMenu();
+            var isEquals = gameLogic.Find(number);
+
+            if (isEquals)
             {
-                var attemptsCount = gameLogic.GetAttemptsCount();
-                Console.WriteLine(_messages.GetCountToLossMessage(attemptsCount));
-
-                var number = GetGuessNumberAtConsoleMenu();
-                var isEquals = gameLogic.Find(number);
-
-                if (isEquals)
-                {
-                    Console.WriteLine(_messages.Victory);
-                    break;
-                }
-
-                if (gameLogic.IsHasAttempts()) continue;
-
-                Console.WriteLine(_messages.Loss);
+                _messageService.ShowMessage(Messages.Victory);
                 break;
             }
-            Console.ReadLine();
+
+            if (gameLogic.IsHasAttempts()) continue;
+
+            _messageService.ShowMessage(Messages.Loss);
+            break;
+        }
+    }
+
+    /// <inheritdoc />
+    public IGameLogic PrepareGameLogic()
+    {
+        var randomGenerator = CreateDefaultRandomGenerator();
+        var attemptsCount = GetAttemptsCountAtConsoleMenu();
+
+        return new GameLogic(attemptsCount, randomGenerator.Next(), _messageService);
+    }
+
+    /// <summary>
+    /// Запрашивает у пользователя число через консоль с заданным сообщением
+    /// </summary>
+    /// <param name="consoleMessage">Сообщение, которое будет отображено пользователю</param>
+    /// <returns>Введенное пользователем число</returns>
+    private int GetNumberAtConsoleMenu(string consoleMessage)
+    {
+        _messageService.ShowMessage(consoleMessage);
+        int number;
+        while (!int.TryParse(_messageService.Read(), out number))
+        {
+            _messageService.ShowMessage(Messages.NotANumber);
         }
 
-        /// <inheritdoc />
-        public IGameLogic PrepareGameLogic()
-        {
-            var randomGenerator = CreateDefaultRandomGenerator();
-            var attemptsCount = GetAttemptsCountAtConsoleMenu();
+        return number;
+    }
 
-            return new GameLogic(attemptsCount, randomGenerator.Next(), _messages);
-        }
+    /// <summary>
+    /// Запрашивает у пользователя минимальное число через консоль.
+    /// </summary>
+    /// <returns>Введенное пользователем минимальное число</returns>
+    private int GetMinNumberAtConsoleMenu()
+    {
+        return GetNumberAtConsoleMenu(Messages.EnterMinNumber);
+    }
 
-        /// <summary>
-        /// Запрашивает у пользователя число через консоль с заданным сообщением
-        /// </summary>
-        /// <param name="consoleMessage">Сообщение, которое будет отображено пользователю</param>
-        /// <returns>Введенное пользователем число</returns>
-        private int GetNumberAtConsoleMenu(string consoleMessage)
+    /// <summary>
+    /// Запрашивает у пользователя максимальное число через консоль
+    /// </summary>
+    /// <returns>Введенное пользователем максимальное число</returns>
+    private int GetMaxNumberAtConsoleMenu()
+    {
+        return GetNumberAtConsoleMenu(Messages.EnterMaxNumber);
+    }
+
+    /// <summary>
+    /// Запрашивает у пользователя количество попыток через консоль
+    /// </summary>
+    /// <returns>Введенное пользователем количество попыток</returns>
+    private int GetAttemptsCountAtConsoleMenu()
+    {
+        return GetNumberAtConsoleMenu(Messages.EnterAttemptsCount);
+    }
+
+    /// <summary>
+    /// Запрашивает у пользователя искомое число
+    /// </summary>
+    /// <returns>Введенное искомое число</returns>
+    private int GetGuessNumberAtConsoleMenu()
+    {
+        return GetNumberAtConsoleMenu(Messages.EnterGuessNumber);
+    }
+
+    /// <summary>
+    /// Создает генератор случайных чисел с заданным диапазоном
+    /// </summary>
+    /// <returns>Экземпляр <see cref="IRandomGenerator"/> с установленным диапазоном</returns>
+    private IRandomGenerator CreateDefaultRandomGenerator()
+    {
+        int min, max;
+        while (true)
         {
-            Console.Write(consoleMessage);
-            int number;
-            while (!int.TryParse(Console.ReadLine(), out number))
+            min = GetMinNumberAtConsoleMenu();
+            max = GetMaxNumberAtConsoleMenu();
+            if (min < max)
             {
-                Console.WriteLine(_messages.NotANumber);
+                break;
             }
-            return number;
+
+            _messageService.ShowMessage(Messages.InvalidRange);
         }
 
-        /// <summary>
-        /// Запрашивает у пользователя минимальное число через консоль.
-        /// </summary>
-        /// <returns>Введенное пользователем минимальное число</returns>
-        private int GetMinNumberAtConsoleMenu()
-        {
-            return GetNumberAtConsoleMenu(_messages.EnterMinNumber);
-        }
-
-        /// <summary>
-        /// Запрашивает у пользователя максимальное число через консоль
-        /// </summary>
-        /// <returns>Введенное пользователем максимальное число</returns>
-        private int GetMaxNumberAtConsoleMenu()
-        {
-            return GetNumberAtConsoleMenu(_messages.EnterMaxNumber);
-        }
-
-        /// <summary>
-        /// Запрашивает у пользователя количество попыток через консоль
-        /// </summary>
-        /// <returns>Введенное пользователем количество попыток</returns>
-        private int GetAttemptsCountAtConsoleMenu()
-        { 
-            return GetNumberAtConsoleMenu(_messages.EnterAttemptsCount);
-        }
-
-        /// <summary>
-        /// Запрашивает у пользователя искомое число
-        /// </summary>
-        /// <returns>Введенное искомое число</returns>
-        private int GetGuessNumberAtConsoleMenu()
-        {
-            return GetNumberAtConsoleMenu(_messages.EnterGuessNumber); 
-        }
-
-        /// <summary>
-        /// Создает генератор случайных чисел с заданным диапазоном
-        /// </summary>
-        /// <returns>Экземпляр <see cref="IRandomGenerator"/> с установленным диапазоном</returns>
-        private IRandomGenerator CreateDefaultRandomGenerator()
-        {
-            int min, max;
-            while (true)
-            {
-                min = GetMinNumberAtConsoleMenu();
-                max = GetMaxNumberAtConsoleMenu();
-                if (min < max) 
-                {
-                    break;
-                }
-                Console.WriteLine(_messages.InvalidRange);
-            }
-            var random = new RandomGenerator(min, max);
-            return random;
-        }
+        var random = new RandomGenerator(min, max);
+        return random;
     }
 }
